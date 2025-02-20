@@ -13,3 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
+feature_video_list/src/main/res/values/secrets.xml

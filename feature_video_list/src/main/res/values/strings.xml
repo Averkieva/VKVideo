@@ -5,5 +5,14 @@
     <string name="video_title_placeholder">Название видео</string>
     <string name="video_duration_placeholder">10:00</string>
     <string name="placeholder_description">Описание плейсхолдера</string>
+    <string name="placeholder_text">100K просмотров • 1 день назад</string>
+
+    <!-- Fragment video list-->
+    <string name="video_title">Видео</string>
+    <string name="search_hint">Поиск видео</string>
+    <string name="search_button_description">Поиск</string>
+
+    <!-- Video view holder-->
+    <string name="video_info_format">%1$s • %2$s • %3$s</string>
 
 </resources>

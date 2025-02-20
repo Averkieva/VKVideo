@@ -1,29 +1,24 @@
 package com.example.feature_video_list.ui.fragment
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.feature_video_list.data.RetrofitClient
-import com.example.feature_video_list.data.YouTubePopularVideo
-import com.example.feature_video_list.data.YouTubeResponse
-import com.example.feature_video_list.data.YouTubeSearchVideo
+import com.example.feature_video_list.data.repository.VideoRepositoryImpl
 import com.example.feature_video_list.databinding.FragmentVideoListBinding
-import com.example.feature_video_list.domain.model.VideoItem
 import com.example.feature_video_list.ui.adapter.VideoAdapter
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
-import java.util.regex.Pattern
+import com.example.feature_video_list.ui.viewmodel.VideoViewModel
+import com.example.feature_video_list.ui.viewmodel.VideoViewModelFactory
+import com.example.feature_video_list.R
 
 class VideoListFragment : Fragment() {
 
@@ -31,8 +26,14 @@ class VideoListFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var adapter: VideoAdapter
-    private val apiService = RetrofitClient.instance
-    private val apiKey = "AIzaSyChvnJudDSvNBkOM3-a3FVfxgpJS41a_XY"
+    private val viewModel: VideoViewModel by viewModels {
+        VideoViewModelFactory(
+            VideoRepositoryImpl(
+                RetrofitClient.instance,
+                requireContext().getString((R.string.youtube_api_key))
+            )
+        )
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -42,205 +43,81 @@ class VideoListFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         setupRecyclerView()
         setupListeners()
+        setupObservers()
 
-        refreshVideos("")
+        viewModel.loadPopularVideos()
+
+        binding.root.setOnTouchListener { v, _ ->
+            hideKeyboard(v)
+            false
+        }
+
+        binding.searchEditText.setOnFocusChangeListener { v, hasFocus ->
+            if (!hasFocus) {
+                hideKeyboard(v)
+            }
+        }
     }
 
     private fun setupRecyclerView() {
         adapter = VideoAdapter(emptyList())
         binding.videoRecyclerView.adapter = adapter
         binding.videoRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        binding.videoRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                    hideKeyboard(recyclerView)
+                }
+            }
+        })
     }
 
     private fun setupListeners() {
         binding.swipeRefreshLayout.setOnRefreshListener {
             val query = binding.searchEditText.text.toString().trim()
-            refreshVideos(query)
+            if (query.isEmpty()) {
+                viewModel.loadPopularVideos()
+            } else {
+                viewModel.searchVideos(query)
+            }
         }
 
         binding.searchButton.setOnClickListener {
             val query = binding.searchEditText.text.toString().trim()
-            Log.d("SEARCH_DEBUG", "Поиск запущен с запросом: '$query'")
-            refreshVideos(query)
+            viewModel.searchVideos(query)
+        }
+    }
+
+    private fun setupObservers() {
+        viewModel.videos.observe(viewLifecycleOwner) { videos ->
+            adapter.updateData(videos)
         }
 
-        binding.searchEditText.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                val query = s.toString().trim()
-                if (query.isEmpty()) {
-                    refreshVideos("")
-                }
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            binding.swipeRefreshLayout.isRefreshing = isLoading
+        }
+
+        viewModel.error.observe(viewLifecycleOwner) { error ->
+            error?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
             }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
-    }
-
-    private fun refreshVideos(query: String) {
-        binding.swipeRefreshLayout.isRefreshing = true
-
-        if (query.isEmpty()) {
-            Log.d("API_DEBUG", "Запрашиваем популярные видео")
-
-            apiService.getPopularVideos(apiKey = apiKey)
-                .enqueue(object : Callback<YouTubeResponse<YouTubePopularVideo>> {
-                    override fun onResponse(
-                        call: Call<YouTubeResponse<YouTubePopularVideo>>,
-                        response: Response<YouTubeResponse<YouTubePopularVideo>>
-                    ) {
-                        if (response.isSuccessful) {
-                            val items = response.body()?.items?.map { video ->
-                                val thumbnailUrl = video.snippet.thumbnails?.maxres?.url
-                                    ?: video.snippet.thumbnails?.standard?.url
-                                    ?: video.snippet.thumbnails?.high?.url
-                                    ?: video.snippet.thumbnails?.medium?.url ?: ""
-
-                                VideoItem(
-                                    title = video.snippet.title,
-                                    imageUrl = thumbnailUrl,
-                                    duration = formatDuration(video.contentDetails.duration),
-                                    viewCount = "${video.statistics.viewCount}",
-                                    publishedDate = formatPublishedDate(video.snippet.publishedAt)
-                                )
-                            } ?: emptyList()
-
-                            adapter.updateData(items)
-                            Log.d("API_SUCCESS", "Топовые видео загружены: ${items.size}")
-                        } else {
-                            Log.e("API_ERROR", "Ошибка API: ${response.errorBody()?.string()}")
-                        }
-                        binding.swipeRefreshLayout.isRefreshing = false
-                    }
-
-                    override fun onFailure(
-                        call: Call<YouTubeResponse<YouTubePopularVideo>>,
-                        t: Throwable
-                    ) {
-                        Log.e("API_ERROR", "Ошибка загрузки: ${t.localizedMessage}")
-                        binding.swipeRefreshLayout.isRefreshing = false
-                    }
-                })
-
-        } else {
-            Log.d("API_DEBUG", "Запрашиваем поиск с запросом: '$query'")
-
-            apiService.getVideos(query = query, apiKey = apiKey)
-                .enqueue(object : Callback<YouTubeResponse<YouTubeSearchVideo>> {
-                    override fun onResponse(
-                        call: Call<YouTubeResponse<YouTubeSearchVideo>>,
-                        response: Response<YouTubeResponse<YouTubeSearchVideo>>
-                    ) {
-                        if (response.isSuccessful) {
-                            val videoIds =
-                                response.body()?.items?.map { it.id.videoId }?.joinToString(",")
-                                    ?: ""
-
-                            if (videoIds.isNotEmpty()) {
-                                apiService.getVideoDetails(videoIds = videoIds, apiKey = apiKey)
-                                    .enqueue(object :
-                                        Callback<YouTubeResponse<YouTubePopularVideo>> {
-                                        override fun onResponse(
-                                            call: Call<YouTubeResponse<YouTubePopularVideo>>,
-                                            response: Response<YouTubeResponse<YouTubePopularVideo>>
-                                        ) {
-                                            if (response.isSuccessful) {
-                                                val items = response.body()?.items?.map { video ->
-                                                    val thumbnailUrl =
-                                                        video.snippet.thumbnails?.maxres?.url
-                                                            ?: video.snippet.thumbnails?.standard?.url
-                                                            ?: video.snippet.thumbnails?.high?.url
-                                                            ?: video.snippet.thumbnails?.medium?.url
-                                                            ?: ""
-
-                                                    VideoItem(
-                                                        title = video.snippet.title,
-                                                        imageUrl = thumbnailUrl,
-                                                        duration = formatDuration(video.contentDetails.duration),
-                                                        viewCount = "${video.statistics.viewCount}",
-                                                        publishedDate = formatPublishedDate(video.snippet.publishedAt)
-                                                    )
-                                                } ?: emptyList()
-
-                                                adapter.updateData(items)
-                                                Log.d(
-                                                    "API_SUCCESS",
-                                                    "Видео по запросу загружены: ${items.size}"
-                                                )
-                                            } else {
-                                                Log.e(
-                                                    "API_ERROR",
-                                                    "Ошибка API: ${response.errorBody()?.string()}"
-                                                )
-                                            }
-                                            binding.swipeRefreshLayout.isRefreshing = false
-                                        }
-
-                                        override fun onFailure(
-                                            call: Call<YouTubeResponse<YouTubePopularVideo>>,
-                                            t: Throwable
-                                        ) {
-                                            Log.e(
-                                                "API_ERROR",
-                                                "Ошибка загрузки: ${t.localizedMessage}"
-                                            )
-                                            binding.swipeRefreshLayout.isRefreshing = false
-                                        }
-                                    })
-                            }
-                        } else {
-                            Log.e("API_ERROR", "Ошибка API: ${response.errorBody()?.string()}")
-                            binding.swipeRefreshLayout.isRefreshing = false
-                        }
-                    }
-
-                    override fun onFailure(
-                        call: Call<YouTubeResponse<YouTubeSearchVideo>>,
-                        t: Throwable
-                    ) {
-                        Log.e("API_ERROR", "Ошибка загрузки: ${t.localizedMessage}")
-                        binding.swipeRefreshLayout.isRefreshing = false
-                    }
-                })
-        }
-    }
-
-    fun formatPublishedDate(publishedAt: String): String {
-        return try {
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
-            sdf.timeZone = TimeZone.getTimeZone("UTC")
-            val date = sdf.parse(publishedAt)
-            val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-            outputFormat.format(date ?: Date())
-        } catch (e: Exception) {
-            "Неизвестная дата"
-        }
-    }
-
-    fun formatDuration(isoDuration: String): String {
-        val pattern = Pattern.compile("PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?")
-        val matcher = pattern.matcher(isoDuration)
-        return if (matcher.matches()) {
-            val hours = matcher.group(1)?.toLongOrNull() ?: 0
-            val minutes = matcher.group(2)?.toLongOrNull() ?: 0
-            val seconds = matcher.group(3)?.toLongOrNull() ?: 0
-
-            when {
-                hours > 0 -> String.format("%d:%02d:%02d", hours, minutes, seconds)
-                else -> String.format("%02d:%02d", minutes, seconds)
-            }
-        } else {
-            "0:00"
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun hideKeyboard(view: View) {
+        val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 }

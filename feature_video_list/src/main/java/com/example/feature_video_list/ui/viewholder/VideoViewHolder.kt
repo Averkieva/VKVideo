@@ -11,7 +11,12 @@ class VideoViewHolder(private val binding: ItemVideoBinding) :
 
     fun bind(video: VideoItem) {
         binding.videoTitleTextView.text = video.title
-        binding.videoInfoTextView.text = "${video.viewCount} просмотров • ${video.publishedDate}"
+        binding.videoInfoTextView.text = binding.root.context.getString(
+            R.string.video_info_format,
+            video.author,
+            video.viewCount,
+            video.publishedDate
+        )
         binding.videoDurationTextView.text = video.duration
 
         Glide.with(binding.root.context)

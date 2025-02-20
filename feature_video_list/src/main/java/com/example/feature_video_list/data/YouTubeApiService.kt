@@ -1,34 +1,37 @@
 package com.example.feature_video_list.data
 
-import retrofit2.Call
+import com.example.feature_video_list.data.model.YouTubePopularVideo
+import com.example.feature_video_list.data.model.YouTubeResponse
+import com.example.feature_video_list.data.model.YouTubeSearchVideo
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface YouTubeApiService {
+
     @GET("videos")
-    fun getPopularVideos(
+    suspend fun getPopularVideos(
         @Query("part") part: String = "snippet,contentDetails,statistics",
         @Query("chart") chart: String = "mostPopular",
-        @Query("maxResults") maxResults: Int = 10,
+        @Query("maxResults") maxResults: Int = 50,
         @Query("regionCode") regionCode: String = "RU",
         @Query("key") apiKey: String
-    ): Call<YouTubeResponse<YouTubePopularVideo>>
+    ): Response<YouTubeResponse<YouTubePopularVideo>>
 
     @GET("search")
-    fun getVideos(
+    suspend fun getVideos(
         @Query("part") part: String = "snippet",
-        @Query("maxResults") maxResults: Int = 10,
+        @Query("maxResults") maxResults: Int = 50,
         @Query("q") query: String,
         @Query("type") type: String = "video",
         @Query("key") apiKey: String
-    ): Call<YouTubeResponse<YouTubeSearchVideo>>
+    ): Response<YouTubeResponse<YouTubeSearchVideo>>
 
     @GET("videos")
-    fun getVideoDetails(
+    suspend fun getVideoDetails(
         @Query("part") part: String = "snippet,contentDetails,statistics",
         @Query("id") videoIds: String,
         @Query("key") apiKey: String
-    ): Call<YouTubeResponse<YouTubePopularVideo>>
-
+    ): Response<YouTubeResponse<YouTubePopularVideo>>
 }
 
