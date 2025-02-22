@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "VK Video"
 include(":app")
- 
+include(":feature_video_list")
