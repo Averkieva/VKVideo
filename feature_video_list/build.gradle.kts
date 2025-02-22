@@ -57,6 +57,8 @@ dependencies {
     implementation (libs.converter.gson)
     implementation (libs.kotlinx.coroutines.core)
     implementation (libs.kotlinx.coroutines.android)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
     annotationProcessor (libs.compiler)
     kapt(libs.compiler.v4160)
     testImplementation(libs.junit)

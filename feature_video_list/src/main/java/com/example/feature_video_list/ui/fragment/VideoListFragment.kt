@@ -9,16 +9,12 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.feature_video_list.data.RetrofitClient
-import com.example.feature_video_list.data.repository.VideoRepositoryImpl
 import com.example.feature_video_list.databinding.FragmentVideoListBinding
 import com.example.feature_video_list.ui.adapter.VideoAdapter
 import com.example.feature_video_list.ui.viewmodel.VideoViewModel
-import com.example.feature_video_list.ui.viewmodel.VideoViewModelFactory
-import com.example.feature_video_list.R
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class VideoListFragment : Fragment() {
 
@@ -26,14 +22,8 @@ class VideoListFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var adapter: VideoAdapter
-    private val viewModel: VideoViewModel by viewModels {
-        VideoViewModelFactory(
-            VideoRepositoryImpl(
-                RetrofitClient.instance,
-                requireContext().getString((R.string.youtube_api_key))
-            )
-        )
-    }
+
+    private val viewModel: VideoViewModel by viewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
