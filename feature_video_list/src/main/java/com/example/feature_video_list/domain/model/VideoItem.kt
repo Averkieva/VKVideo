@@ -6,6 +6,4 @@ data class VideoItem(
     val thumbnailUrl: String,
     val videoUrl: String,
     val duration: Int,
-    val authorName: String,
-    val authorUrl: String
-)
+    val authorName: String)

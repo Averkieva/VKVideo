@@ -10,7 +10,5 @@ fun PexelsVideo.toVideoItem(): VideoItem {
         thumbnailUrl = image,
         videoUrl = video_files.firstOrNull { it.quality == "hd" }?.link ?: url,
         duration = duration,
-        authorName = user.name,
-        authorUrl = user.url
-    )
+        authorName = user.name)
 }
