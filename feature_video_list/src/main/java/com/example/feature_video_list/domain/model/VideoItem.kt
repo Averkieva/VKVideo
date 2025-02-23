@@ -1,10 +1,11 @@
 package com.example.feature_video_list.domain.model
 
 data class VideoItem(
+    val id: String,
     val title: String,
-    val imageUrl: String,
-    val duration: String,
-    val author: String,
-    val viewCount: String,
-    val publishedDate: String
+    val thumbnailUrl: String,
+    val videoUrl: String,
+    val duration: Int,
+    val authorName: String,
+    val authorUrl: String
 )

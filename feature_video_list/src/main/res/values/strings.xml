@@ -12,7 +12,6 @@
     <string name="search_hint">Поиск видео</string>
     <string name="search_button_description">Поиск</string>
 
-    <!-- Video view holder-->
-    <string name="video_info_format">%1$s • %2$s • %3$s</string>
-
+    <!-- Video view holder -->
+    <string name="video_info_format">%1$s • %2$d сек.</string>
 </resources>
