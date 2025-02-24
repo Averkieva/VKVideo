@@ -2,6 +2,7 @@ package com.example.vkvideo
 
 import android.app.Application
 import com.example.feature_video_list.di.featureVideoListModule
+import com.example.feature_video_player.di.videoPlayerModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext.startKoin
@@ -15,7 +16,8 @@ class App : Application() {
             androidLogger(Level.DEBUG)
             androidContext(this@App)
             modules(
-                featureVideoListModule
+                featureVideoListModule,
+                videoPlayerModule
             )
         }
     }

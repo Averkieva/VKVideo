@@ -33,6 +33,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":feature_video_player"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -59,6 +60,9 @@ dependencies {
     implementation (libs.kotlinx.coroutines.android)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    implementation (libs.androidx.room.runtime)
+    kapt (libs.androidx.room.compiler)
+    implementation (libs.androidx.room.ktx)
     annotationProcessor (libs.compiler)
     kapt(libs.compiler.v4160)
     testImplementation(libs.junit)

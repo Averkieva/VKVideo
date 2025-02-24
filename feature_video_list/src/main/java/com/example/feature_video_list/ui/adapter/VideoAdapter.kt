@@ -8,12 +8,14 @@ import com.example.feature_video_list.databinding.ItemVideoBinding
 import com.example.feature_video_list.domain.model.VideoItem
 import com.example.feature_video_list.ui.viewholder.VideoViewHolder
 
-class VideoAdapter(private var videos: List<VideoItem>) :
-    RecyclerView.Adapter<VideoViewHolder>() {
+class VideoAdapter(
+    private var videos: List<VideoItem>,
+    private val onItemClick: (VideoItem) -> Unit
+) : RecyclerView.Adapter<VideoViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VideoViewHolder {
         val binding = ItemVideoBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return VideoViewHolder(binding)
+        return VideoViewHolder(binding, onItemClick)
     }
 
     override fun onBindViewHolder(holder: VideoViewHolder, position: Int) {

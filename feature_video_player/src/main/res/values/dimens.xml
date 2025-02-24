@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <!-- Margins -->
+    <dimen name="margin_large">16dp</dimen>
+
+    <!-- Button Sizes -->
+    <dimen name="back_button_size">48dp</dimen>
+
+</resources>

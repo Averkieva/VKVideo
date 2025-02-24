@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.feature_video_list.domain.model.VideoItem
 import com.example.feature_video_list.domain.repository.VideoRepository
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
 
@@ -19,11 +20,107 @@ class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> get() = _error
 
+    private var currentQuery: String? = null
+    private var isSearchMode = false
+
+    private var currentPage = 1
+    var isLastPage = false
+    val pageSize = DEFAULT_PAGE_SIZE
+
+    init {
+        loadPopularVideos()
+    }
+
     fun loadPopularVideos() {
+        if (!isSearchMode) {
+            _isLoading.value = true
+            currentPage = 1
+            viewModelScope.launch {
+                try {
+                    val videos = repository.getPopularVideos(page = currentPage)
+                    if (videos.isEmpty()) {
+                        _error.value = ERROR_NO_VIDEOS_FOUND
+                    } else {
+                        _videos.value = videos
+                        _error.value = null
+                    }
+                    isSearchMode = false
+                    currentQuery = null
+                    isLastPage = videos.size < pageSize
+                } catch (e: IOException) {
+                    _error.value = e.message
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+
+    fun clearError() {
+        _error.value = null
+    }
+
+    fun loadMoreVideos() {
+        if (_isLoading.value == true || isLastPage) return
+
+        _isLoading.value = true
+        currentPage++
+        viewModelScope.launch {
+            try {
+                val newVideos = if (isSearchMode && !currentQuery.isNullOrEmpty()) {
+                    repository.searchVideos(currentQuery!!, page = currentPage)
+                } else {
+                    repository.getPopularVideos(page = currentPage)
+                }
+
+                val updatedVideos = _videos.value.orEmpty() + newVideos
+                _videos.value = updatedVideos
+                isLastPage = newVideos.size < pageSize
+            } catch (e: Exception) {
+                _error.value = e.message
+                currentPage--
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun searchVideos(query: String) {
+        if (query != currentQuery) {
+            _isLoading.value = true
+            currentPage = 1
+            viewModelScope.launch {
+                try {
+                    val videos = repository.searchVideos(query, page = currentPage)
+                    if (videos.isEmpty()) {
+                        _error.value = ERROR_NO_VIDEOS_FOUND
+                    } else {
+                        _videos.value = videos
+                        _error.value = null
+                    }
+                    currentQuery = query
+                    isSearchMode = true
+                    isLastPage = videos.size < pageSize
+                } catch (e: Exception) {
+                    _error.value = e.message
+                } finally {
+                    _isLoading.value = false
+                }
+            }
+        }
+    }
+
+    fun restoreLastState() {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                _videos.value = repository.getPopularVideos()
+                if (isSearchMode && !currentQuery.isNullOrEmpty()) {
+                    val videos = repository.searchVideos(currentQuery!!, page = currentPage)
+                    _videos.value = videos
+                } else {
+                    val videos = repository.getPopularVideos(page = currentPage)
+                    _videos.value = videos
+                }
                 _error.value = null
             } catch (e: Exception) {
                 _error.value = e.message
@@ -33,18 +130,18 @@ class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
         }
     }
 
-    fun searchVideos(query: String) {
-        _isLoading.value = true
-        viewModelScope.launch {
-            try {
-                _videos.value = repository.searchVideos(query)
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = e.message
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun clearSearch() {
+        isSearchMode = false
+        currentQuery = null
+        currentPage = 1
+        isLastPage = false
+        loadPopularVideos()
+    }
+
+    companion object {
+        const val ERROR_NO_VIDEOS_FOUND = "Нет видео по вашему запросу"
+        const val DEFAULT_PAGE_SIZE = 10
     }
 }
+
 
