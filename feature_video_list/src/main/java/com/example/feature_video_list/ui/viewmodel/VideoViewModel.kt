@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.feature_video_list.domain.model.VideoItem
 import com.example.feature_video_list.domain.repository.VideoRepository
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
 
@@ -24,7 +25,7 @@ class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
 
     private var currentPage = 1
     var isLastPage = false
-    val pageSize = 10
+    val pageSize = DEFAULT_PAGE_SIZE
 
     init {
         loadPopularVideos()
@@ -37,18 +38,26 @@ class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
             viewModelScope.launch {
                 try {
                     val videos = repository.getPopularVideos(page = currentPage)
-                    _videos.value = videos
-                    _error.value = null
+                    if (videos.isEmpty()) {
+                        _error.value = ERROR_NO_VIDEOS_FOUND
+                    } else {
+                        _videos.value = videos
+                        _error.value = null
+                    }
                     isSearchMode = false
                     currentQuery = null
                     isLastPage = videos.size < pageSize
-                } catch (e: Exception) {
+                } catch (e: IOException) {
                     _error.value = e.message
                 } finally {
                     _isLoading.value = false
                 }
             }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 
     fun loadMoreVideos() {
@@ -83,8 +92,12 @@ class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
             viewModelScope.launch {
                 try {
                     val videos = repository.searchVideos(query, page = currentPage)
-                    _videos.value = videos
-                    _error.value = null
+                    if (videos.isEmpty()) {
+                        _error.value = ERROR_NO_VIDEOS_FOUND
+                    } else {
+                        _videos.value = videos
+                        _error.value = null
+                    }
                     currentQuery = query
                     isSearchMode = true
                     isLastPage = videos.size < pageSize
@@ -124,5 +137,11 @@ class VideoViewModel(private val repository: VideoRepository) : ViewModel() {
         isLastPage = false
         loadPopularVideos()
     }
+
+    companion object {
+        const val ERROR_NO_VIDEOS_FOUND = "Нет видео по вашему запросу"
+        const val DEFAULT_PAGE_SIZE = 10
+    }
 }
+
 
