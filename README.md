@@ -4,7 +4,7 @@
 Необходимо клонировать проект на свой компьютер:
 ```sh
 
-git clone https://github.com/Averkieva/MusicAvito.git
+git clone[ https://github.com/Averkieva/MusicAvito.git](https://github.com/Averkieva/VKVideo.git)
 ```
 ## 2. Как открыть проект
 - Откройте приложение **Android Studio** 
